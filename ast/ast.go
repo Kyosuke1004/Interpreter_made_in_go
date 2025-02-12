@@ -367,3 +367,22 @@ func (ml *MacroLiteral) String() string {
 
 	return out.String()
 }
+
+// 再代入を可能にするためのノード
+type AssignExpression struct {
+	Token token.Token // "=" トークン
+	Name  *Identifier
+	Value Expression
+}
+
+func (ae *AssignExpression) expressionNode()      {}
+func (ae *AssignExpression) TokenLiteral() string { return ae.Token.Literal }
+func (ae *AssignExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString(ae.Name.String())
+	out.WriteString(" = ")
+	out.WriteString(ae.Value.String())
+
+	return out.String()
+}

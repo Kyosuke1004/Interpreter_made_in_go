@@ -571,3 +571,29 @@ func TestHashIndexExpressions(t *testing.T) {
 		}
 	}
 }
+
+func TestAssignStatement(t *testing.T) {
+	tests := []struct {
+		input string
+
+		expected int64
+	}{
+		{
+			input:    "let a = 2; a = 4; a;",
+			expected: 4,
+		},
+		{
+			input:    "let a = 5; a = 10; a;",
+			expected: 10,
+		},
+		{
+			input:    "let a = 5; let b = a; a = 10; b;",
+			expected: 5,
+		},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		testIntegerObject(t, evaluated, tt.expected)
+	}
+}

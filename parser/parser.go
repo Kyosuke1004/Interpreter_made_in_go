@@ -13,6 +13,7 @@ import (
 const (
 	_ int = iota
 	LOWEST
+	ASSIGN      //=
 	EQUALS      // ==
 	LESSGREATER // > or <
 	SUM         // +
@@ -33,6 +34,7 @@ var precedences = map[token.TokenType]int{
 	token.ASTERISK: PRODUCT,
 	token.LPAREN:   CALL,
 	token.LBRACKET: INDEX,
+	token.ASSIGN:   ASSIGN,
 }
 
 type (
@@ -83,6 +85,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.GT, p.parseInfixExpression)
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	p.registerInfix(token.LBRACKET, p.parseIndexExpression)
+	// '='を中間演算子としても登録
+	p.registerInfix(token.ASSIGN, p.parseAssignExpression)
 
 	// 2つトークンを読み込む．curTokenとpeekTokenの両方がセットされる．
 	p.nextToken()
@@ -176,6 +180,23 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	}
 
 	return stmt
+}
+
+func (p *Parser) parseAssignExpression(left ast.Expression) ast.Expression {
+	identifier, ok := left.(*ast.Identifier)
+
+	if !ok {
+		return nil
+	}
+
+	exp := &ast.AssignExpression{
+		Token: p.curToken,
+		Name:  identifier, // 代入先の変数名
+	}
+
+	p.nextToken()
+	exp.Value = p.parseExpression(LOWEST)
+	return exp
 }
 
 func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
