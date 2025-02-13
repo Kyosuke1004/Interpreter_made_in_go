@@ -19,6 +19,14 @@ func isError(obj object.Object) bool {
 	return false
 }
 
+func isReturn(obj object.Object) bool {
+	if obj != nil {
+		return obj.Type() == object.RETURN_VALUE_OBJ
+	}
+
+	return false
+}
+
 func Eval(node ast.Node, env *object.Environment) object.Object {
 	switch node := node.(type) {
 	// 文

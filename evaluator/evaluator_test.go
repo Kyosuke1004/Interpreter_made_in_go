@@ -597,3 +597,19 @@ func TestAssignStatement(t *testing.T) {
 		testIntegerObject(t, evaluated, tt.expected)
 	}
 }
+
+func TestEvalForStatement(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		{"let x = 0; for (let i = 0; i < 5; i = i + 1) { x = x + 1 }; x", 5},
+		{"let x = 5; for (let i = 0; i < 3; i = i + 1) { x = x * 2 }; x", 40},
+		{"let x = 0; for (let i = 10; i > 0; i = i - 1) { x = x + i }; x", 55},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		testIntegerObject(t, evaluated, tt.expected)
+	}
+}
