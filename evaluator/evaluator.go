@@ -111,6 +111,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			return val
 		}
 		env.Set(node.Name.Value, val)
+	case *ast.ForStatement:
+		return evalForStatement(node, env)
 	}
 
 	return nil
@@ -334,6 +336,38 @@ func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Obje
 	} else {
 		return NULL
 	}
+}
+
+func evalForStatement(stmt *ast.ForStatement, env *object.Environment) object.Object {
+	initStmt := Eval(stmt.InitialStatement, env)
+	if isError(initStmt) {
+		return initStmt
+	}
+
+	var result object.Object
+
+	for {
+		// 継続条件
+		condition := Eval(stmt.Condition, env)
+		if isError(condition) {
+			return condition
+		}
+		if !isTruthy(condition) {
+			break
+		}
+
+		result = Eval(stmt.Block, env)
+		if isError(result) || isReturn(result) {
+			return result
+		}
+
+		postStmt := Eval(stmt.PostStatement, env)
+		if isError(postStmt) {
+			return postStmt
+		}
+	}
+
+	return result
 }
 
 func evalHashLiteral(

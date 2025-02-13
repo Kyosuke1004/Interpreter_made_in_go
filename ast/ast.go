@@ -386,3 +386,37 @@ func (ae *AssignExpression) String() string {
 
 	return out.String()
 }
+
+// for文のノード
+type ForStatement struct {
+	Token            token.Token
+	InitialStatement Statement       // 初期化の部分
+	Condition        Expression      //継続するかどうかの部分
+	PostStatement    Statement       //増分処理
+	Block            *BlockStatement //　処理本体の部分
+}
+
+func (fs *ForStatement) statementNode()       {}
+func (fs *ForStatement) TokenLiteral() string { return fs.Token.Literal }
+func (fs *ForStatement) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("for")
+	if fs.InitialStatement != nil {
+		out.WriteString(fs.InitialStatement.String())
+	}
+	out.WriteString("; ")
+	if fs.Condition != nil {
+		out.WriteString(fs.Condition.String())
+	}
+	out.WriteString("; ")
+	if fs.PostStatement != nil {
+		out.WriteString(fs.PostStatement.String())
+	}
+	out.WriteString(" ")
+	if fs.Block != nil {
+		out.WriteString(fs.Block.String())
+	}
+
+	return out.String()
+}

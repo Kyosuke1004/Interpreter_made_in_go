@@ -920,6 +920,63 @@ func TestAssignStatement(t *testing.T) {
 	}
 }
 
+func TestForStatements(t *testing.T) {
+	input := `
+    for (let i = 0; i < 10; i = i + 1) {
+        puts(i);
+    }
+    `
+	l := lexer.New(input)
+	p := New(l)
+	fmt.Println(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("program.Statements does not contain 1 statement. got=%d", len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ForStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not *ast.ForStatement. got=%T", program.Statements[0])
+	}
+
+	// 初期化文の確認
+	initStmt, ok := stmt.InitialStatement.(*ast.LetStatement)
+	if !ok {
+		t.Fatalf("stmt.InitialStatement is not *ast.LetStatement. got=%T", stmt.InitialStatement)
+	}
+	if initStmt.Name.Value != "i" || initStmt.Value.String() != "0" {
+		t.Errorf("Initial statement incorrect. got=%s", initStmt.String())
+	}
+
+	// 条件式の確認
+	condition, ok := stmt.Condition.(*ast.InfixExpression)
+	if !ok || condition.Operator != "<" || condition.Left.String() != "i" || condition.Right.String() != "10" {
+		t.Errorf("Condition expression incorrect. got=%s", stmt.Condition.String())
+	}
+
+	// 後置文の確認
+	postStmt, ok := stmt.PostStatement.(*ast.ExpressionStatement)
+	if !ok {
+		t.Errorf("Post statement incorrect. got=%s", stmt.PostStatement.String())
+	}
+
+	postExp, ok := postStmt.Expression.(*ast.AssignExpression)
+	if !ok {
+		t.Fatalf("postStmt is not *ast.AssignExpression. got=%T", postStmt.Expression)
+	}
+
+	if !testInfixExpression(t, postExp.Value, "i", "+", 1) {
+		return
+	}
+
+	// ブロック内ステートメントの確認
+	if len(stmt.Block.Statements) != 1 {
+		t.Fatalf("Block does not contain 1 statement. got=%d", len(stmt.Block.Statements))
+	}
+}
+
 func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
 	if s.TokenLiteral() != "let" {
 		t.Errorf("s.TokenLiteral not 'let'. got=%q", s.TokenLiteral())
