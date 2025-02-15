@@ -183,6 +183,8 @@ func TestParsingPrefixExpressions(t *testing.T) {
 		{"-15;", "-", 15},
 		{"!true;", "!", true},
 		{"!false;", "!", false},
+		{"++x;", "++", "x"},
+		{"--x;", "--", "x"},
 	}
 
 	for _, tt := range prefixTests {
@@ -928,7 +930,6 @@ func TestForStatements(t *testing.T) {
     `
 	l := lexer.New(input)
 	p := New(l)
-	fmt.Println(l)
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
 
@@ -974,6 +975,50 @@ func TestForStatements(t *testing.T) {
 	// ブロック内ステートメントの確認
 	if len(stmt.Block.Statements) != 1 {
 		t.Fatalf("Block does not contain 1 statement. got=%d", len(stmt.Block.Statements))
+	}
+}
+
+func TestPostfixIncrementExpression(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"x++;", "x++"},
+		{"myVar++;", "myVar++"},
+		{"foobar++;", "foobar++"},
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("program.Statements does not contain 1 statement. got=%d",
+				len(program.Statements))
+		}
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T",
+				program.Statements[0])
+		}
+
+		exp, ok := stmt.Expression.(*ast.IncrementExpression)
+		if !ok {
+			t.Fatalf("stmt.Expression is not ast.IncrementExpression. got=%T",
+				stmt.Expression)
+		}
+
+		if exp.Identifier.Value != tt.expected[:len(tt.expected)-2] {
+			t.Errorf("exp.Identifier.Value not %s. got=%s",
+				tt.expected[:len(tt.expected)-2], exp.Identifier.Value)
+		}
+
+		if exp.Token.Literal != "++" {
+			t.Errorf("exp.Token.Literal not '++'. got=%q", exp.Token.Literal)
+		}
 	}
 }
 

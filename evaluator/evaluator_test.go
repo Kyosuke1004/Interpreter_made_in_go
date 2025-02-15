@@ -27,6 +27,7 @@ func TestEvalIntegerExpression(t *testing.T) {
 		{"3 * 3 * 3 + 10", 37},
 		{"3 * (3 * 3) + 10", 37},
 		{"(5 + 10 * 2 + 15 / 3) * 2 + -10", 50},
+		{"++5", 6},
 	}
 
 	for _, tt := range tests {
@@ -604,8 +605,24 @@ func TestEvalForStatement(t *testing.T) {
 		expected int64
 	}{
 		{"let x = 0; for (let i = 0; i < 5; i = i + 1) { x = x + 1 }; x", 5},
-		{"let x = 5; for (let i = 0; i < 3; i = i + 1) { x = x * 2 }; x", 40},
+		{"let x = 5; for (let i = 0; i < 3; i++ ) { x = x * 2 }; x", 40},
 		{"let x = 0; for (let i = 10; i > 0; i = i - 1) { x = x + i }; x", 55},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		testIntegerObject(t, evaluated, tt.expected)
+	}
+}
+
+func TestPostIncrementExpression(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		{"let a = 5; a++; a;", 6},
+		{"let a = 10; let b = a++; b;", 10},
+		{"let a = 1; let b = a++ + a++; b;", 3},
 	}
 
 	for _, tt := range tests {

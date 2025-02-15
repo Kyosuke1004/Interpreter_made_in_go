@@ -420,3 +420,15 @@ func (fs *ForStatement) String() string {
 
 	return out.String()
 }
+
+// 後置インクリメント
+type IncrementExpression struct {
+	Token      token.Token
+	Identifier *Identifier
+}
+
+func (ie *IncrementExpression) expressionNode()      {}
+func (ie *IncrementExpression) TokenLiteral() string { return ie.Token.Literal }
+func (ie *IncrementExpression) String() string {
+	return ie.Identifier.String() + "++"
+}

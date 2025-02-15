@@ -40,6 +40,9 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.Boolean:
 		return nativeBoolToBooleanObject(node.Value)
 	case *ast.PrefixExpression:
+		if node.Operator == "++" {
+			return evalPreIncrementExpression(node, env)
+		}
 		right := Eval(node.Right, env)
 		if isError(right) {
 			return right
@@ -121,6 +124,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		env.Set(node.Name.Value, val)
 	case *ast.ForStatement:
 		return evalForStatement(node, env)
+	case *ast.IncrementExpression:
+		return evalPostIncrementExpression(node, env)
 	}
 
 	return nil
@@ -178,21 +183,6 @@ func evalIdentifier(
 	}
 	return newError("identifier not found: " + node.Value)
 }
-
-// 途中で使わなくなったやつ
-// func evalStatements(stmts []ast.Statement, env *object.Environment) object.Object {
-// 	var result object.Object
-
-// 	for _, statement := range stmts {
-// 		result = Eval(statement, env)
-
-// 		if returnValue, ok := result.(*object.ReturnValue); ok {
-// 			return returnValue.Value
-// 		}
-// 	}
-
-// 	return result
-// }
 
 func evalBlockStatement(block *ast.BlockStatement, env *object.Environment) object.Object {
 	var result object.Object
@@ -266,6 +256,36 @@ func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
 
 	value := right.(*object.Integer).Value
 	return &object.Integer{Value: -value}
+}
+
+func evalPreIncrementExpression(node *ast.PrefixExpression, env *object.Environment) object.Object {
+	identifier, ok := node.Right.(*ast.Identifier)
+	if !ok {
+		return newError("cannot increment %s, expected identifier", node.Right.TokenLiteral())
+	}
+
+	val, exists := env.Get(identifier.Value)
+	if !exists {
+		return newError("identifier not found: %s", identifier.Value)
+	}
+
+	if intObj, ok := val.(*object.Integer); ok {
+		newVal := &object.Integer{Value: intObj.Value + 1}
+		env.Set(identifier.Value, newVal)
+		return newVal
+	}
+	return newError("cannot increment non-integer value: %s", val.Type())
+}
+
+func evalPostIncrementExpression(ie *ast.IncrementExpression, env *object.Environment) object.Object {
+	val := Eval(ie.Identifier, env)
+	if val.Type() != object.INTEGER_OBJ {
+		return newError("invalid operation: cannot increment %s", val.Type())
+	}
+
+	beforeVal := val.(*object.Integer)
+	env.Set(ie.Identifier.Value, &object.Integer{Value: beforeVal.Value + 1})
+	return beforeVal
 }
 
 func evalInfixExpression(

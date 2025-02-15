@@ -17,6 +17,7 @@ const (
 	EQUALS      // ==
 	LESSGREATER // > or <
 	SUM         // +
+	INCREMENT   // ++
 	PRODUCT     // *
 	PREFIX      // -X or !X
 	CALL        // myFunction(X)
@@ -24,17 +25,18 @@ const (
 )
 
 var precedences = map[token.TokenType]int{
-	token.EQ:       EQUALS,
-	token.NOT_EQ:   EQUALS,
-	token.LT:       LESSGREATER,
-	token.GT:       LESSGREATER,
-	token.PLUS:     SUM,
-	token.MINUS:    SUM,
-	token.SLASH:    PRODUCT,
-	token.ASTERISK: PRODUCT,
-	token.LPAREN:   CALL,
-	token.LBRACKET: INDEX,
-	token.ASSIGN:   ASSIGN,
+	token.EQ:        EQUALS,
+	token.NOT_EQ:    EQUALS,
+	token.INCREMENT: INCREMENT,
+	token.LT:        LESSGREATER,
+	token.GT:        LESSGREATER,
+	token.PLUS:      SUM,
+	token.MINUS:     SUM,
+	token.SLASH:     PRODUCT,
+	token.ASTERISK:  PRODUCT,
+	token.LPAREN:    CALL,
+	token.LBRACKET:  INDEX,
+	token.ASSIGN:    ASSIGN,
 }
 
 type (
@@ -64,6 +66,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
+	p.registerPrefix(token.INCREMENT, p.parsePrefixExpression)
+	p.registerPrefix(token.DECREMENT, p.parsePrefixExpression)
 	p.registerPrefix(token.TRUE, p.parseBoolean)
 	p.registerPrefix(token.FALSE, p.parseBoolean)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
@@ -87,6 +91,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.LBRACKET, p.parseIndexExpression)
 	// '='を中間演算子としても登録
 	p.registerInfix(token.ASSIGN, p.parseAssignExpression)
+	// 後置インクリメントのためにインクリメントを中間演算子としても登録
+	p.registerInfix(token.INCREMENT, p.parseIncrementExpression)
 
 	// 2つトークンを読み込む．curTokenとpeekTokenの両方がセットされる．
 	p.nextToken()
@@ -228,6 +234,19 @@ func (p *Parser) parseForStatement() *ast.ForStatement {
 	stmt.Block = p.parseBlockStatement()
 
 	return stmt
+}
+
+func (p *Parser) parseIncrementExpression(left ast.Expression) ast.Expression {
+	expression := &ast.IncrementExpression{
+		Token: p.curToken,
+	}
+
+	expression.Identifier = left.(*ast.Identifier)
+
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+	return expression
 }
 
 func (p *Parser) parseReturnStatement() *ast.ReturnStatement {

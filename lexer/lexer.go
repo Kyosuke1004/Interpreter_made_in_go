@@ -60,7 +60,14 @@ func (l *Lexer) NextToken() token.Token {
 			tok = newToken(token.PLUS, l.ch)
 		}
 	case '-':
-		tok = newToken(token.MINUS, l.ch)
+		if l.peekChar() == '-' {
+			ch := l.ch
+			l.readChar()
+			literal := string(ch) + string(l.ch)
+			tok = token.Token{Type: token.DECREMENT, Literal: literal}
+		} else {
+			tok = newToken(token.MINUS, l.ch)
+		}
 	case '!':
 		if l.peekChar() == '=' {
 			ch := l.ch
