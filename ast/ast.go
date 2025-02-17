@@ -432,3 +432,14 @@ func (ie *IncrementExpression) TokenLiteral() string { return ie.Token.Literal }
 func (ie *IncrementExpression) String() string {
 	return ie.Identifier.String() + "++"
 }
+
+type LoadStatement struct {
+	Token    token.Token // 'load'トークン
+	Filename *StringLiteral
+}
+
+func (ls *LoadStatement) statementNode()       {}
+func (ls *LoadStatement) TokenLiteral() string { return ls.Token.Literal }
+func (ls *LoadStatement) String() string {
+	return "load " + ls.Filename.String()
+}

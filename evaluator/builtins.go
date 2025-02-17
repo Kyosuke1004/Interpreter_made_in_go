@@ -2,108 +2,148 @@ package evaluator
 
 import (
 	"fmt"
+	"monkey/lexer"
 	"monkey/object"
+	"monkey/parser"
+	"os"
 )
 
-var builtins = map[string]*object.Builtin{
-	"len": &object.Builtin{
-		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newError("wrong number of arguments. got=%d, want=1", len(args))
-			}
+var builtins map[string]*object.Builtin
 
-			switch arg := args[0].(type) {
-			case *object.Array:
-				return &object.Integer{Value: int64(len(arg.Elements))}
-			case *object.String:
-				return &object.Integer{Value: int64(len(arg.Value))}
-			default:
-				return newError("argument to `len` not supported, got %s",
-					args[0].Type())
-			}
+func init() {
+	builtins = map[string]*object.Builtin{
+		"len": &object.Builtin{
+			Fn: func(args ...object.Object) object.Object {
+				if len(args) != 1 {
+					return newError("wrong number of arguments. got=%d, want=1", len(args))
+				}
+
+				switch arg := args[0].(type) {
+				case *object.Array:
+					return &object.Integer{Value: int64(len(arg.Elements))}
+				case *object.String:
+					return &object.Integer{Value: int64(len(arg.Value))}
+				default:
+					return newError("argument to `len` not supported, got %s",
+						args[0].Type())
+				}
+			},
 		},
-	},
-	"first": &object.Builtin{
-		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newError("wrong number of arguments. got=%d, want=1", len(args))
-			}
-			if args[0].Type() != object.ARRAY_OBJ {
-				return newError("argument to `first` must be ARRAY, got %s", args[0].Type())
-			}
+		"first": &object.Builtin{
+			Fn: func(args ...object.Object) object.Object {
+				if len(args) != 1 {
+					return newError("wrong number of arguments. got=%d, want=1", len(args))
+				}
+				if args[0].Type() != object.ARRAY_OBJ {
+					return newError("argument to `first` must be ARRAY, got %s", args[0].Type())
+				}
 
-			arr := args[0].(*object.Array)
-			if len(arr.Elements) > 0 {
-				return arr.Elements[0]
-			}
+				arr := args[0].(*object.Array)
+				if len(arr.Elements) > 0 {
+					return arr.Elements[0]
+				}
 
-			return NULL
+				return NULL
+			},
 		},
-	},
-	"last": &object.Builtin{
-		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newError("wrong number of arguments. got=%d, want=1", len(args))
-			}
-			if args[0].Type() != object.ARRAY_OBJ {
-				return newError("argument to `last` must be ARRAY, got %s", args[0].Type())
-			}
+		"last": &object.Builtin{
+			Fn: func(args ...object.Object) object.Object {
+				if len(args) != 1 {
+					return newError("wrong number of arguments. got=%d, want=1", len(args))
+				}
+				if args[0].Type() != object.ARRAY_OBJ {
+					return newError("argument to `last` must be ARRAY, got %s", args[0].Type())
+				}
 
-			arr := args[0].(*object.Array)
-			length := len(arr.Elements)
-			if length > 0 {
-				return arr.Elements[length-1]
-			}
+				arr := args[0].(*object.Array)
+				length := len(arr.Elements)
+				if length > 0 {
+					return arr.Elements[length-1]
+				}
 
-			return NULL
+				return NULL
+			},
 		},
-	},
-	"rest": &object.Builtin{
-		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 1 {
-				return newError("wrong number of arguments. got=%d, want=1", len(args))
-			}
-			if args[0].Type() != object.ARRAY_OBJ {
-				return newError("argument to `rest` must be ARRAY, got %s", args[0].Type())
-			}
+		"rest": &object.Builtin{
+			Fn: func(args ...object.Object) object.Object {
+				if len(args) != 1 {
+					return newError("wrong number of arguments. got=%d, want=1", len(args))
+				}
+				if args[0].Type() != object.ARRAY_OBJ {
+					return newError("argument to `rest` must be ARRAY, got %s", args[0].Type())
+				}
 
-			arr := args[0].(*object.Array)
-			length := len(arr.Elements)
-			if length > 0 {
-				newElements := make([]object.Object, length-1, length-1)
-				copy(newElements, arr.Elements[1:length])
+				arr := args[0].(*object.Array)
+				length := len(arr.Elements)
+				if length > 0 {
+					newElements := make([]object.Object, length-1, length-1)
+					copy(newElements, arr.Elements[1:length])
+					return &object.Array{Elements: newElements}
+				}
+
+				return NULL
+			},
+		},
+		"push": &object.Builtin{
+			Fn: func(args ...object.Object) object.Object {
+				if len(args) != 2 {
+					return newError("wrong number of arguments. got=%d, want=2", len(args))
+				}
+				if args[0].Type() != object.ARRAY_OBJ {
+					return newError("argument to `push` must be ARRAY, got %s", args[0].Type())
+				}
+
+				arr := args[0].(*object.Array)
+				length := len(arr.Elements)
+
+				newElements := make([]object.Object, length+1, length+1)
+				copy(newElements, arr.Elements)
+				newElements[length] = args[1]
+
 				return &object.Array{Elements: newElements}
-			}
-
-			return NULL
+			},
 		},
-	},
-	"push": &object.Builtin{
-		Fn: func(args ...object.Object) object.Object {
-			if len(args) != 2 {
-				return newError("wrong number of arguments. got=%d, want=2", len(args))
-			}
-			if args[0].Type() != object.ARRAY_OBJ {
-				return newError("argument to `push` must be ARRAY, got %s", args[0].Type())
-			}
+		"puts": &object.Builtin{
+			Fn: func(args ...object.Object) object.Object {
+				for _, arg := range args {
+					fmt.Println(arg.Inspect())
+				}
 
-			arr := args[0].(*object.Array)
-			length := len(arr.Elements)
-
-			newElements := make([]object.Object, length+1, length+1)
-			copy(newElements, arr.Elements)
-			newElements[length] = args[1]
-
-			return &object.Array{Elements: newElements}
+				return NULL
+			},
 		},
-	},
-	"puts": &object.Builtin{
-		Fn: func(args ...object.Object) object.Object {
-			for _, arg := range args {
-				fmt.Println(arg.Inspect())
-			}
+		"readFile": &object.Builtin{
+			Fn: func(args ...object.Object) object.Object {
+				if len(args) != 1 {
+					return newError("引数の数が正しくありません。got=%d, want=1", len(args))
+				}
+				if args[0].Type() != object.STRING_OBJ {
+					return newError("`readFile`の引数は文字列である必要があります。got=%s", args[0].Type())
+				}
+				filename := args[0].(*object.String).Value
+				content, err := readFile(filename)
+				if err != nil {
+					return newError("ファイルの読み込みに失敗しました: %s", err)
+				}
+				l := lexer.New(content)
+				p := parser.New(l)
+				program := p.ParseProgram()
+				if len(p.Errors()) != 0 {
+					return newError("パースエラー in %s: %s", filename, p.Errors()[0])
+				}
 
-			return NULL
+				env := object.NewEnvironment()
+				Eval(program, env)
+				return NULL
+			},
 		},
-	},
+	}
+}
+
+func readFile(filename string) (string, error) {
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		return "", err
+	}
+	return string(content), nil
 }

@@ -27,7 +27,6 @@ func TestEvalIntegerExpression(t *testing.T) {
 		{"3 * 3 * 3 + 10", 37},
 		{"3 * (3 * 3) + 10", 37},
 		{"(5 + 10 * 2 + 15 / 3) * 2 + -10", 50},
-		{"++5", 6},
 	}
 
 	for _, tt := range tests {
@@ -623,6 +622,8 @@ func TestPostIncrementExpression(t *testing.T) {
 		{"let a = 5; a++; a;", 6},
 		{"let a = 10; let b = a++; b;", 10},
 		{"let a = 1; let b = a++ + a++; b;", 3},
+		{"let a = 1; ++a; a;", 2},
+		{"let a = 1; let b = ++a; b;", 2},
 	}
 
 	for _, tt := range tests {

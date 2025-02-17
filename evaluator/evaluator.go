@@ -3,7 +3,9 @@ package evaluator
 import (
 	"fmt"
 	"monkey/ast"
+	"monkey/lexer"
 	"monkey/object"
+	"monkey/parser"
 )
 
 var (
@@ -126,6 +128,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalForStatement(node, env)
 	case *ast.IncrementExpression:
 		return evalPostIncrementExpression(node, env)
+	case *ast.LoadStatement:
+		return evalExternalFile(node.Filename.Value, env)
 	}
 
 	return nil
@@ -301,7 +305,7 @@ func evalInfixExpression(
 		return nativeBoolToBooleanObject(left != right)
 	case left.Type() != right.Type():
 		return newError("type mismatch: %s %s %s", left.Type(), operator, right.Type())
-	case left.Type() == object.STRIGN_OBJ && right.Type() == object.STRIGN_OBJ:
+	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
 		return evalStringInfixExpression(operator, left, right)
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
@@ -443,6 +447,23 @@ func evalHashIndexExpression(hash, index object.Object) object.Object {
 	return pair.Value
 }
 
+func evalExternalFile(filename string, env *object.Environment) object.Object {
+	content, err := readFile(filename)
+	if err != nil {
+		return newError("ファイルの読み込みに失敗しました: %s", err)
+	}
+
+	l := lexer.New(content)
+	p := parser.New(l)
+	program := p.ParseProgram()
+
+	if len(p.Errors()) != 0 {
+		return newError("パースエラー: %s", p.Errors()[0])
+	}
+
+	return Eval(program, env)
+}
+
 func isTruthy(obj object.Object) bool {
 	switch obj {
 	case NULL:
@@ -494,3 +515,5 @@ func unwrapReturnValue(obj object.Object) object.Object {
 func newError(format string, a ...interface{}) *object.Error {
 	return &object.Error{Message: fmt.Sprintf(format, a...)}
 }
+
+// たぶんbuiltinで得たソースコードがevalに渡されてないから
