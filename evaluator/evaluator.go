@@ -21,6 +21,7 @@ func isError(obj object.Object) bool {
 	return false
 }
 
+// オブジェクトがリターンの評価結果かどうかを判定
 func isReturn(obj object.Object) bool {
 	if obj != nil {
 		return obj.Type() == object.RETURN_VALUE_OBJ

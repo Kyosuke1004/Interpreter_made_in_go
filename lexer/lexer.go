@@ -51,6 +51,7 @@ func (l *Lexer) NextToken() token.Token {
 			tok = newToken(token.ASSIGN, l.ch)
 		}
 	case '+':
+		// letで宣言した変数を再代入可能にするために"+"を中間演算子として認識
 		if l.peekChar() == '+' {
 			ch := l.ch
 			l.readChar()
